@@ -5,6 +5,9 @@ let button;
 //Cookies.remove('userId');
 let userId = Cookies.get('userId');
 
+let blks = 0;
+let MINING = false;
+
 
 function createNewUser(){
 
@@ -26,18 +29,27 @@ function setup() {
 		createNewUser();
 	}else{
 		console.log('userId:', userId);
+		getUserBlks();
 	}
 	 
 
 	background(51);
 	button = createButton('Mine');
-  	button.position(19, 19);
+  	button.position(200, 19);
   	button.mousePressed(getLatestBlock);
+  	console.log(button);
   	
 }
 
-socket.on('block', function(msg) {
-	console.log(msg);
+
+
+socket.on('block', function(block) {
+	//console.log(msg);
+	//let block = JSON.parse(msg);
+	console.log('New Block', block);
+	blockId = block.blockId;
+	prevHash = block.prevHash;
+
 });
 
 socket.on('pos', function(msg) {
@@ -48,13 +60,17 @@ socket.on('pos', function(msg) {
 
 });
 
-
-function calcHash(data){
-	let encrypted = CryptoJS.SHA256(JSON.stringify(data)).toString();
-	console.log(encrypted);
+function getUserBlks(){
+	httpGet('/user/blks/' + userId, 'json', function(res){
+		console.log('blocks', res);
+		blks = res.blks;
+	});
 }
 
 function getLatestBlock(){
+	MINING = true;
+	button.hide();
+
 	httpGet('/block/latest', 'json', function(res){
 		console.log('Latest Block', res);
 		blockId = res.blockId;
@@ -91,8 +107,18 @@ function mineBlock(){
 		hash: hash
 	}
 	console.log(block);
-	httpPost('/block/verify', 'json', block, function(res){
-		console.log(res);
+	httpPost('/block/verify', 'json', block, function(res,err){
+		if(err){
+			console.error("Cannot Verify block", err);
+			getLatestBlock();
+		}else{
+			blks = res.blks;
+			console.log(res, blks);
+				
+		}
+		
+		button.show();
+		MINING = false;
 	});
 }
 
@@ -111,7 +137,18 @@ function mouseMoved(){
 }
 
 function draw() {
-	//console.log(count);	
+	background(51);
+	fill(240);
+	textSize(32);
+	text('Blocks:' + blks.toString() , 20, 40);
+	//console.log(count);
+
+	if(MINING){
+		fill(0);
+		textSize(64);
+		text('Mining...', 10, 200);
+
+	}	
 }
 
 

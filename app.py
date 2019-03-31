@@ -53,7 +53,7 @@ def verifyBlock():
 		#data = json.dumps(request.json)
 		#block = json.loads(data)
 		block = request.json
-		print('new Block:', block, type(block))
+		print('new Block:', block)
 		if block['blockId'] != LAST_BLOCK_ID:
 			raise Exception("Block id does not match")
 		if block['prevHash'] != LATEST_HASH:
@@ -69,10 +69,11 @@ def verifyBlock():
 		LATEST_HASH = hashResult
 		redis.set('prev-hash', LATEST_HASH)	
 		
-		LAST_BLOCK_ID = redis.incr('last-block-id') 
+		LAST_BLOCK_ID = redis.incr('last-block-id')
+		userBlks = redis.incr('blk:'+block['userId']) 
 		latestBlock = { 'blockId': LAST_BLOCK_ID, 'prevHash': LATEST_HASH}
 		socketio.emit('block', latestBlock);
-		response = {'status': 'accepted', 'block': latestBlock};
+		response = {'status': 'accepted', 'block': latestBlock, 'blks': userBlks};
 		
 		return jsonify(response), 200 
 
@@ -88,6 +89,16 @@ def nodeid():
 	nid = redis.get('node-id').decode("utf-8") 
 	response = {'nodeId': nid}
 	return jsonify(response), 200 
+
+
+@app.route('/user/blks/<userId>', methods=['GET'])
+def getUserBlks(userId):
+	#Generate random number to be used as userId
+	blks = redis.get('blk:'+str(userId)).decode() 
+	response = {'blks': blks}
+	return jsonify(response), 200 
+
+
 
 
 @app.route('/user/new', methods=['GET'])
