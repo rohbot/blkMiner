@@ -5,19 +5,28 @@ let button;
 //Cookies.remove('userId');
 let userId = Cookies.get('userId');
 
-let blks = 0;
+let blk_count = 0;
 let MINING = false;
+let blks = [];
+
+let BLKS_UPDATED = false
+
 
 
 function createNewUser(){
 
-	httpGet('/user/new', 'json', function(res){
-		console.log(res);
-		userId = res.userId;
-		Cookies.set('userId', userId);
-		console.log(res.userId);
-		
-	});
+	fetch('/user/new')
+		.then(function(data){
+			console.log(res);
+			userId = res.userId;
+			Cookies.set('userId', userId);
+			console.log(res.userId);
+		})
+		.catch(function(error){
+			console.error(error);
+		})
+
+
 }
 
 
@@ -37,11 +46,15 @@ function setup() {
 	button = createButton('Mine');
   	button.position(200, 19);
   	button.mousePressed(getLatestBlock);
-  	console.log(button);
+  	//console.log(button);
   	
 }
 
-
+socket.on('blks', function(data) {
+	//console.log(blks);
+	blks = data;
+	BLKS_UPDATED = true;
+});
 
 socket.on('block', function(block) {
 	//console.log(msg);
@@ -61,10 +74,16 @@ socket.on('pos', function(msg) {
 });
 
 function getUserBlks(){
-	httpGet('/user/blks/' + userId, 'json', function(res){
-		console.log('blocks', res);
-		blks = res.blks;
-	});
+	fetch('/user/blks/' + userId)
+		.then((resp) => resp.json()) // Transform the data into json
+		.then(function(data){
+			
+			blk_count = data.blks;
+			console.log('blocks', data, blk_count);	
+		})
+		.catch(function (error){
+			console.error(error);
+		})
 }
 
 function getLatestBlock(){
@@ -106,29 +125,30 @@ function mineBlock(){
 		nonce : nonce,
 		hash: hash
 	}
-	console.log(block);
+	console.log(block, JSON.stringify(block));
+
+
 	httpPost('/block/verify', 'json', block, function(res,err){
 		if(err){
 			console.error("Cannot Verify block", err);
 			getLatestBlock();
+		
 		}else{
-			blks = res.blks;
-			console.log(res, blks);
+			blk_count = res.blks;
+			console.log(res, blk_count);
 				
 		}
-		
+
 		button.show();
 		MINING = false;
+
 	});
 }
 
 
 function mousePressed(){
 	let msg = {'x': mouseX, 'y': mouseY};
-	//console.log(msg);
-	// httpPost('/pos', 'json', msg, function(res){
-	// 	console.log(res);
-	// });
+	socket.emit('step world', msg)
 }
 
 
@@ -140,15 +160,25 @@ function draw() {
 	background(51);
 	fill(240);
 	textSize(32);
-	text('Blocks:' + blks.toString() , 20, 40);
+	text('Blocks:' + blk_count.toString() , 20, 40);
 	//console.log(count);
 
 	if(MINING){
 		fill(0);
 		textSize(64);
 		text('Mining...', 10, 200);
+	}
 
-	}	
+	for(let i = 0; i < blks.length; i++){
+		drawBlk(blks[i])
+	}
+}	
+
+function drawBlk(blk){
+	let x = map(blk.x, 0, worldWidth, 0, windowWidth);
+	let y = map(blk.y, 0, worldHeight, 0, windowHeight);
+	
+	rect(x,y, 10, 10);
 }
 
-
+//setInterval(1000, mousePressed);

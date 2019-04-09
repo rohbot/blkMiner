@@ -3,14 +3,9 @@ from flask_redis import Redis
 from flask_socketio import SocketIO
 import time
 import sys
-import Crypto
-import Crypto.Random
-from Crypto.Hash import SHA
 import hashlib
 from uuid import uuid4
-
-
-
+from blk import BlkWorld
 
 
 
@@ -32,11 +27,28 @@ except:
 	redis.set('last-block-id', LAST_BLOCK_ID)
 print("last block id:" , LAST_BLOCK_ID)
 
+thread = None
+world = BlkWorld()
+
+def background_thread():
+	"""Example of how to send server generated events to clients."""
+	while True:
+		world.step()
+
+		socketio.emit('blks', world.getData())
+
+		socketio.sleep(0.01)            
+
 
 @app.route('/')
 def index():
+	global thread
+	if thread is None:
+		thread = socketio.start_background_task(background_thread)
+
 	nodeId = redis.get('node-id').decode("utf-8")
-	return render_template('./index.html', nodeId=nodeId, blockId=LAST_BLOCK_ID, prevHash = LATEST_HASH)
+	return render_template('./index.html', nodeId=nodeId, blockId=LAST_BLOCK_ID, prevHash = LATEST_HASH,
+			worldHeight = world.height, worldWidth=world.width)
 
 
 @app.route('/block/latest')
@@ -74,7 +86,8 @@ def verifyBlock():
 		latestBlock = { 'blockId': LAST_BLOCK_ID, 'prevHash': LATEST_HASH}
 		socketio.emit('block', latestBlock);
 		response = {'status': 'accepted', 'block': latestBlock, 'blks': userBlks};
-		
+		world.createBlk(LAST_BLOCK_ID)
+		socketio.emit('blks', world.getData())
 		return jsonify(response), 200 
 
 	except:
@@ -99,8 +112,6 @@ def getUserBlks(userId):
 	return jsonify(response), 200 
 
 
-
-
 @app.route('/user/new', methods=['GET'])
 def newUser():
 	#Generate random number to be used as userId
@@ -123,10 +134,6 @@ def pos():
 		return jsonify(response), 406
 
 
-@socketio.on('my event')
-def handle_my_custom_event(json, methods=['GET', 'POST']):
-    print('received my event: ' + str(json))
-    socketio.emit('my response', json, callback=messageReceived)
 
 
 if __name__ == '__main__':
