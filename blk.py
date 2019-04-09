@@ -13,8 +13,8 @@ class BlkWorld:
 		self.height = height
 		self.width = width
 
-	def createBlk(self, _id):
-		blk = Blk(_id)
+	def createBlk(self, _id, userId):
+		blk = Blk(_id,userId)
 		self.blks.append(blk)
 
 	def step(self):
@@ -29,8 +29,9 @@ class BlkWorld:
 		return data	
 
 class Blk:
-	def __init__(self, _id):
+	def __init__(self, _id, userId):
 		self.id = _id
+		self.userId = userId
 		self.pos = vmath.Vector2(randrange(WORLD_HEIGHT), randrange(WORLD_WIDTH))
 		self.vel = vmath.Vector2(random() - 0.5, random()- 0.5)
 		self.acc = vmath.Vector2(random()- 0.5, random()- 0.5)
@@ -67,7 +68,7 @@ class Blk:
 			force = MAX_ACCL
 	
 	def getData(self):
-		data = {'id':self.id,'x': self.pos.x, 'y': self.pos.y}
+		data = {'id':self.id, 'userId': self.userId, 'x': self.pos.x, 'y': self.pos.y}
 		return data
 
 if __name__ == '__main__':

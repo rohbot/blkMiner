@@ -86,7 +86,7 @@ def verifyBlock():
 		latestBlock = { 'blockId': LAST_BLOCK_ID, 'prevHash': LATEST_HASH}
 		socketio.emit('block', latestBlock);
 		response = {'status': 'accepted', 'block': latestBlock, 'blks': userBlks};
-		world.createBlk(LAST_BLOCK_ID)
+		world.createBlk(LAST_BLOCK_ID,block['userId'] )
 		socketio.emit('blks', world.getData())
 		return jsonify(response), 200 
 

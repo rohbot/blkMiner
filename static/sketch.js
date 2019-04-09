@@ -16,11 +16,12 @@ let BLKS_UPDATED = false
 function createNewUser(){
 
 	fetch('/user/new')
+		.then((resp) => resp.json()) // Transform the data into json
 		.then(function(data){
-			console.log(res);
-			userId = res.userId;
+			console.log(data);
+			userId = data.userId;
 			Cookies.set('userId', userId);
-			console.log(res.userId);
+			console.log(data.userId);
 		})
 		.catch(function(error){
 			console.error(error);
@@ -157,27 +158,39 @@ function mouseMoved(){
 }
 
 function draw() {
-	background(51);
-	fill(240);
-	textSize(32);
-	text('Blocks:' + blk_count.toString() , 20, 40);
 	//console.log(count);
 
+	if(BLKS_UPDATED){
+		background(51);
+		for(let i = 0; i < blks.length; i++){
+			drawBlk(blks[i])
+		}
+		BLKS_UPDATED = false
+	}
+	
 	if(MINING){
 		fill(0);
 		textSize(64);
-		text('Mining...', 10, 200);
+		text('Mining...', width/2 - 100, height/2);
 	}
 
-	for(let i = 0; i < blks.length; i++){
-		drawBlk(blks[i])
-	}
+	fill(240);
+	textSize(32);
+	text('Blocks:' + blk_count.toString() , 20, 40);
+	
+
 }	
 
 function drawBlk(blk){
+	//console.log(blk);
 	let x = map(blk.x, 0, worldWidth, 0, windowWidth);
 	let y = map(blk.y, 0, worldHeight, 0, windowHeight);
-	
+	if(blk.userId == userId){
+		fill(0,240,0);		//paint green
+	}else{
+		fill(240,0,0);		// paint red
+	}
+
 	rect(x,y, 10, 10);
 }
 
